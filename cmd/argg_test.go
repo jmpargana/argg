@@ -74,11 +74,6 @@ func TestTakeN(t *testing.T) {
 			expected: [][]string{{"arg1"}, {"arg2"}, {"arg3"}},
 		},
 		{
-			given:    []string{"arg1 arg2 arg3"},
-			n:        1,
-			expected: [][]string{{"arg1"}, {"arg2"}, {"arg3"}},
-		},
-		{
 			given:    []string{"arg1", "arg2", "arg3"},
 			n:        2,
 			expected: [][]string{{"arg1", "arg2"}, {"arg3"}},

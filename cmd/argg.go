@@ -23,7 +23,14 @@ var (
 		Long:  "Less complete and less performant version of xargs but done in 1h and by me :)",
 		Run: func(_ *cobra.Command, args []string) {
 			pipedArgs := readPipedArgs(os.Stdin)
-			execCommands(isParallel, pipedArgs, args)
+			finalArgs := splitArgsByN(pipedArgs, nTaken)
+			var executor func([][]string, func([]string))
+			if isParallel {
+				executor = execCommandInParallel
+			} else {
+				executor = execCommandSequentially
+			}
+			executor(finalArgs, execCommand(args))
 		},
 	}
 )
@@ -31,15 +38,6 @@ var (
 func init() {
 	rootCmd.PersistentFlags().BoolVarP(&isParallel, "parallel", "P", false, "Executes commands parallelly")
 	rootCmd.PersistentFlags().IntVarP(&nTaken, "number", "n", math.MaxInt, "Take n from stdin")
-}
-
-func execCommands(isParallel bool, pipedArgs, args []string) {
-	finalArgs := splitArgsByN(pipedArgs, nTaken)
-	if isParallel {
-		execCommandInParallel(finalArgs, execCommand(args))
-	} else {
-		execCommandSequentially(finalArgs, execCommand(args))
-	}
 }
 
 func execCommandSequentially(args [][]string, f func(arg []string)) {
@@ -73,7 +71,6 @@ func execCommand(args []string) func([]string) {
 }
 
 func splitArgsByN(args []string, n int) [][]string {
-	args = disjoin(args)
 	var result [][]string
 	for len(args) > 0 {
 		var chunk []string
@@ -87,14 +84,6 @@ func splitArgsByN(args []string, n int) [][]string {
 		result = append(result, chunk)
 	}
 	return result
-}
-
-func disjoin(args []string) []string {
-	var out []string
-	for _, arg := range args {
-		out = append(out, strings.Split(arg, " ")...)
-	}
-	return out
 }
 
 func mergeArgs(args, pipedArgs []string) []string {
@@ -111,7 +100,7 @@ func readPipedArgs(r io.Reader) []string {
 	var args []string
 	sc := bufio.NewScanner(r)
 	for sc.Scan() {
-		args = append(args, sc.Text())
+		args = append(args, strings.Split(sc.Text(), " ")...)
 	}
 	return args
 }
